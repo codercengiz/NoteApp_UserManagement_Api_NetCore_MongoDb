@@ -31,6 +31,7 @@ namespace NoteApp_UserManagement_Api
         {
              services.Configure<UserDatabaseSettings>(
                 Configuration.GetSection(nameof(UserDatabaseSettings)));
+           
 
             services.AddSingleton<IUserDatabaseSettings>(sp =>
                 sp.GetRequiredService<IOptions<UserDatabaseSettings>>().Value);
@@ -52,7 +53,7 @@ namespace NoteApp_UserManagement_Api
             {
                 app.UseHsts();
             }
-
+            app.UseCors(policy => policy.AllowAnyMethod());
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseEndpoints(endpoints =>

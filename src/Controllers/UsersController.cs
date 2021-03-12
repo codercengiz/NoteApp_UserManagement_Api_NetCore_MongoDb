@@ -34,6 +34,7 @@ namespace NoteApp_UserManagement_Api.Controllers
         }
 
         [HttpPost]
+        [Route("create")]
         public ActionResult<User> Create(User user)
         {
             _userService.Create(user);
