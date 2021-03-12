@@ -12,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NoteApp_UserManagement_Api.Services;
+using NoteApp_UserManagement_Api.Models;
 
 namespace NoteApp_UserManagement_Api
 {
@@ -27,7 +29,16 @@ namespace NoteApp_UserManagement_Api
         #region snippet_ConfigureServices
         public void ConfigureServices(IServiceCollection services)
         {
-            
+             services.Configure<UserDatabaseSettings>(
+                Configuration.GetSection(nameof(UserDatabaseSettings)));
+
+            services.AddSingleton<IUserDatabaseSettings>(sp =>
+                sp.GetRequiredService<IOptions<UserDatabaseSettings>>().Value);
+
+            services.AddSingleton<UserService>();
+
+            services.AddControllers()
+                .AddNewtonsoftJson(options => options.UseMemberCasing());
         }
         #endregion
 
