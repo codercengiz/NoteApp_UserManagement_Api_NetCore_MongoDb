@@ -14,7 +14,7 @@ namespace NoteApp_UserManagement_Api.Models
 
 
         [BsonElement("Name")]
-        [JsonProperty("Name")]
+        [JsonProperty("UserName")]
         public string UserName { get; set; }
 
 

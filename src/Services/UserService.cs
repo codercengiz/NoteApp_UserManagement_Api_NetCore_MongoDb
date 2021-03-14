@@ -3,6 +3,7 @@ using NoteApp_UserManagement_Api.Models;
 using MongoDB.Driver;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace NoteApp_UserManagement_Api.Services
 {
@@ -28,6 +29,8 @@ namespace NoteApp_UserManagement_Api.Services
 
         public User Create(User user)
         {
+            user.Id=null;
+
             _users.InsertOne(user);
             return user;
         }
