@@ -17,11 +17,11 @@ namespace NoteApp_UserManagement_Api.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<User>> Get() =>
+        public ActionResult<List<UserModel>> Get() =>
             _userService.Get();
 
         [HttpGet("{id:length(24)}", Name = "GetUser")]
-        public ActionResult<User> Get(string id)
+        public ActionResult<UserModel> Get(string id)
         {
             var user = _userService.Get(id);
 
@@ -35,15 +35,15 @@ namespace NoteApp_UserManagement_Api.Controllers
 
         [HttpPost]
         [Route("create")]
-        public ActionResult<User> Create(User user)
+        public ActionResult<UserModel> Create(RegisterUserModel user)
         {
-            _userService.Create(user);
+            var userModel=_userService.Create(user);
 
-            return CreatedAtRoute("GetUser", new { id = user.Id.ToString() }, user);
+            return CreatedAtRoute("GetUser", new { id = userModel.Id.ToString() }, userModel);
         }
 
         [HttpPut("{id:length(24)}")]
-        public IActionResult Update(string id, User userIn)
+        public IActionResult Update(string id, UpdateUserModel userIn)
         {
             var user = _userService.Get(id);
 

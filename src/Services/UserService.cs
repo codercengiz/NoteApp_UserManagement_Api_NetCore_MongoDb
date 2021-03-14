@@ -1,5 +1,6 @@
 #region snippet_UserServiceClass
 using NoteApp_UserManagement_Api.Models;
+using NoteApp_UserManagement_Api.Entities;
 using MongoDB.Driver;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,28 +22,98 @@ namespace NoteApp_UserManagement_Api.Services
         }
         #endregion
 
-        public List<User> Get() =>
-            _users.Find(user => true).ToList();
+        public List<UserModel> Get() =>
+            _users.Find(user => true).ToList().Select(user1=>  getUserModelFromUser(user1)).ToList();
 
-        public User Get(string id) =>
-            _users.Find<User>(user => user.Id == id).FirstOrDefault();
+        public UserModel Get(string id) =>
+            getUserModelFromUser(_users.Find<User>(user => user.Id == id).FirstOrDefault());
 
-        public User Create(User user)
+        public UserModel Create(RegisterUserModel registerUserModel)
         {
-            user.Id=null;
-
-            _users.InsertOne(user);
-            return user;
+            
+            User newUser = getUserFromRegisterUserModel(registerUserModel);
+            byte[] passwordHash, passwordSalt;
+            CreatePasswordHash(registerUserModel.Password, out passwordHash, out passwordSalt);
+            newUser.PasswordHash=passwordHash;
+            newUser.PasswordSalt=passwordSalt;
+            _users.InsertOne(newUser);
+            return getUserModelFromUser(newUser);
         }
 
-        public void Update(string id, User userIn) =>
-            _users.ReplaceOne(user => user.Id == id, userIn);
+        public void Update(string id, UpdateUserModel userIn) {
 
-        public void Remove(User userIn) =>
+            User editedUser = getUserFromUpdateUserModel(userIn);
+            byte[] passwordHash, passwordSalt;
+            CreatePasswordHash(userIn.Password, out passwordHash, out passwordSalt);
+            editedUser.PasswordHash=passwordHash;
+            editedUser.PasswordSalt=passwordSalt;
+
+            _users.ReplaceOne(user => user.Id == id, editedUser);
+        }
+
+        
+
+        public void Remove(UserModel userIn) =>
             _users.DeleteOne(user => user.Id == userIn.Id);
 
         public void Remove(string id) => 
             _users.DeleteOne(user => user.Id == id);
+
+         private static void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
+        {
+            if (password == null) throw new ArgumentNullException("password");
+            if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Value cannot be empty or whitespace only string.", "password");
+
+            using (var hmac = new System.Security.Cryptography.HMACSHA512())
+            {
+                passwordSalt = hmac.Key;
+                passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+            }
+        }
+
+        private static bool VerifyPasswordHash(string password, byte[] storedHash, byte[] storedSalt)
+        {
+            if (password == null) throw new ArgumentNullException("password");
+            if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Value cannot be empty or whitespace only string.", "password");
+            if (storedHash.Length != 64) throw new ArgumentException("Invalid length of password hash (64 bytes expected).", "passwordHash");
+            if (storedSalt.Length != 128) throw new ArgumentException("Invalid length of password salt (128 bytes expected).", "passwordHash");
+
+            using (var hmac = new System.Security.Cryptography.HMACSHA512(storedSalt))
+            {
+                var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                for (int i = 0; i < computedHash.Length; i++)
+                {
+                    if (computedHash[i] != storedHash[i]) return false;
+                }
+            }
+
+            return true;
+        }
+
+        private  UserModel getUserModelFromUser(User user ){
+            UserModel userModel = new UserModel();
+            userModel.Id=user.Id;
+            userModel.UserName=user.UserName;
+            userModel.Email=user.Email;
+            return userModel;
+
+        }
+        private  User getUserFromRegisterUserModel(RegisterUserModel registerUserModel ){
+            User user = new User();
+            
+            user.UserName=registerUserModel.UserName;
+            user.Email=registerUserModel.Email;
+            return user;
+
+        }
+        private User getUserFromUpdateUserModel(UpdateUserModel updateUserModel)
+        {
+            User user = new User();
+            user.Id=updateUserModel.Id;
+            user.UserName=updateUserModel.UserName;
+            user.Email=updateUserModel.Email;
+            return user;
+        }
     }
 }
 #endregion
