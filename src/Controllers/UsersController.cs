@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
 
 namespace NoteApp_UserManagement_Api.Controllers
 {
@@ -15,12 +16,13 @@ namespace NoteApp_UserManagement_Api.Controllers
     public class UsersController : ControllerBase
     {
         private readonly UserService _userService;
-
-        public UsersController(UserService userService)
+        IConfiguration _configuration;
+        public UsersController(UserService userService, IConfiguration configuration)
         {
             _userService = userService;
+            _configuration = configuration;
         }
-       
+
         [HttpPost("authenticate")]
         public IActionResult Authenticate(AuthenticateUserModel model)
         {
@@ -29,21 +31,10 @@ namespace NoteApp_UserManagement_Api.Controllers
             if (user == null)
                 return BadRequest(new { message = "Email or password is incorrect" });
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("dsfdsfdsfdsgrtyr6456tregter");
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
-                    new Claim(ClaimTypes.Name, user.Id.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email)
-                }),
-                Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
 
+
+            var tokenString = _userService.GenerateToken(user);
+            var abc = _userService.ValidateJwtToken(tokenString);
             // return basic user info and authentication token
             return Ok(new
             {
@@ -53,9 +44,11 @@ namespace NoteApp_UserManagement_Api.Controllers
                 Token = tokenString
             });
 
-           
-           
+
+
         }
+
+        
 
         [HttpGet]
         public ActionResult<List<UserModel>> Get() =>
@@ -78,7 +71,7 @@ namespace NoteApp_UserManagement_Api.Controllers
         [Route("create")]
         public ActionResult<UserModel> Create(RegisterUserModel user)
         {
-            var userModel=_userService.Create(user);
+            var userModel = _userService.Create(user);
 
             return CreatedAtRoute("GetUser", new { id = userModel.Id.ToString() }, userModel);
         }
@@ -97,7 +90,7 @@ namespace NoteApp_UserManagement_Api.Controllers
 
             return NoContent();
         }
-        
+
         [HttpPost]
         [Route("passwordforgot")]
         public ActionResult<UserModel> PasswordForgot(string id, PasswordForgotUserModel userIn)

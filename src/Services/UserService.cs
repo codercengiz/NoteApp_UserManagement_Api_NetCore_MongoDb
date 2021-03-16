@@ -5,20 +5,27 @@ using MongoDB.Driver;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.Extensions.Configuration;
 
 namespace NoteApp_UserManagement_Api.Services
 {
     public class UserService
     {
         private readonly IMongoCollection<User> _users;
+        private readonly IConfiguration _configuration;
 
         #region snippet_UserServiceConstructor
-        public UserService(IUserDatabaseSettings settings)
+        public UserService(IUserDatabaseSettings settings, IConfiguration configuration)
         {
             var client = new MongoClient(settings.ConnectionString);
             var database = client.GetDatabase(settings.DatabaseName);
 
             _users = database.GetCollection<User>(settings.UsersCollectionName);
+            _configuration= configuration;
         }
         #endregion
         public UserModel Authenticate(string email, string password)
@@ -109,6 +116,53 @@ namespace NoteApp_UserManagement_Api.Services
             }
 
             return true;
+        }
+        public string GenerateToken(UserModel user)
+        {
+            var someClaims = new Claim[]{
+                new Claim(JwtRegisteredClaimNames.UniqueName,user.UserName),
+                new Claim(JwtRegisteredClaimNames.Email,user.Email),
+                new Claim(JwtRegisteredClaimNames.NameId,Guid.NewGuid().ToString())
+            };
+
+            SecurityKey securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWTToken:Secret"]));
+            var token = new JwtSecurityToken(
+                issuer: _configuration["General:Domain"],
+                audience: _configuration["General:Domain"],
+                claims: someClaims,
+                expires: DateTime.Now.AddMinutes(3),
+                signingCredentials: new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256)
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+        public string ValidateJwtToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_configuration["JWTToken:Secret"]);
+            try
+            {
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    // set clockskew to zero so tokens expire exactly at token expiration time (instead of 5 minutes later)
+                    ClockSkew = TimeSpan.Zero
+                }, out SecurityToken validatedToken);
+
+                var jwtToken = (JwtSecurityToken)validatedToken;
+                var accountId = jwtToken.Payload.First(x => x.Key == "nameid").Value.ToString();
+
+                // return account id from JWT token if validation successful
+                return accountId;
+            }
+            catch
+            {
+                // return null if validation fails
+                return null;
+            }
         }
 
         private  UserModel getUserModelFromUser(User user ){
