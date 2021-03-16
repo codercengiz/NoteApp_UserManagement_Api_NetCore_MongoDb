@@ -40,6 +40,10 @@ namespace NoteApp_UserManagement_Api
 
             services.AddControllers()
                 .AddNewtonsoftJson(options => options.UseMemberCasing());
+            /*services.AddAuthentication()
+                .AddGoogle(googleOptions => {  })    
+                .AddTwitter(twitterOptions => {  })
+                .AddFacebook(facebookOptions => {  });*/
         }
         #endregion
 

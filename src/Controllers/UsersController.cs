@@ -1,7 +1,12 @@
 using NoteApp_UserManagement_Api.Models;
 using NoteApp_UserManagement_Api.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 using System.Collections.Generic;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using System;
+using System.Security.Claims;
 
 namespace NoteApp_UserManagement_Api.Controllers
 {
@@ -14,6 +19,42 @@ namespace NoteApp_UserManagement_Api.Controllers
         public UsersController(UserService userService)
         {
             _userService = userService;
+        }
+       
+        [HttpPost("authenticate")]
+        public IActionResult Authenticate(AuthenticateUserModel model)
+        {
+            var user = _userService.Authenticate(model.Email, model.Password);
+
+            if (user == null)
+                return BadRequest(new { message = "Email or password is incorrect" });
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes("dsfdsfdsfdsgrtyr6456tregter");
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                    new Claim(ClaimTypes.Name, user.Id.ToString()),
+                    new Claim(ClaimTypes.Email, user.Email)
+                }),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
+
+            // return basic user info and authentication token
+            return Ok(new
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                Token = tokenString
+            });
+
+           
+           
         }
 
         [HttpGet]
@@ -56,7 +97,22 @@ namespace NoteApp_UserManagement_Api.Controllers
 
             return NoContent();
         }
+        
+        [HttpPost]
+        [Route("passwordforgot")]
+        public ActionResult<UserModel> PasswordForgot(string id, PasswordForgotUserModel userIn)
+        {
+            var user = _userService.Get(id);
 
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            _userService.PasswordForgot(id, userIn);
+
+            return NoContent();
+        }
         [HttpDelete("{id:length(24)}")]
         public IActionResult Delete(string id)
         {

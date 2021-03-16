@@ -21,6 +21,24 @@ namespace NoteApp_UserManagement_Api.Services
             _users = database.GetCollection<User>(settings.UsersCollectionName);
         }
         #endregion
+        public UserModel Authenticate(string email, string password)
+        {
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+                return null;
+
+            var user = _users.Find(user => user.Email==email).SingleOrDefault();
+
+            // check if username exists
+            if (user == null)
+                return null;
+
+            // check if password is correct
+            if (!VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
+                return null;
+
+            // authentication successful
+            return getUserModelFromUser(user);
+        }
 
         public List<UserModel> Get() =>
             _users.Find(user => true).ToList().Select(user1=>  getUserModelFromUser(user1)).ToList();
@@ -50,7 +68,10 @@ namespace NoteApp_UserManagement_Api.Services
 
             _users.ReplaceOne(user => user.Id == id, editedUser);
         }
+        public void PasswordForgot(string id, PasswordForgotUserModel userIn) {
 
+            
+        }
         
 
         public void Remove(UserModel userIn) =>
