@@ -18,6 +18,7 @@ using NoteApp_UserManagement_Api.Models;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace NoteApp_UserManagement_Api
 {
@@ -57,6 +58,10 @@ namespace NoteApp_UserManagement_Api
                 .AddGoogle(googleOptions => {  })    
                 .AddTwitter(twitterOptions => {  })
                 .AddFacebook(facebookOptions => {  });*/
+            services.AddHealthChecks()
+                .AddMongoDb(mongodbConnectionString: _configuration["UserDatabaseSettings:ConnectionString"] ,
+                            name: "mongo", 
+                            failureStatus: HealthStatus.Unhealthy); //adding MongoDb Health Check
             var secret = _configuration["JWTToken:Secret"];
             var key = Encoding.ASCII.GetBytes(secret);
             services.AddApiVersioning(apiVerConfig =>
@@ -110,6 +115,7 @@ namespace NoteApp_UserManagement_Api
             {
                 app.UseHsts();
             }
+            app.UseHealthChecks("/healthcheck");
             app.UseCors(policy => policy.AllowAnyMethod());
             app.UseHttpsRedirection();
             app.UseRouting();
