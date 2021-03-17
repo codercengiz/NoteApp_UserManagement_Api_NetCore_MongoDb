@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Security.Claims;
 using Microsoft.Extensions.Configuration;
+using Serilog;
 
 namespace NoteApp_UserManagement_Api.Controllers.V1
 {
@@ -54,7 +55,7 @@ namespace NoteApp_UserManagement_Api.Controllers.V1
 
         [HttpGet]
         public ActionResult<List<UserModel>> Get() =>
-            _userService.Get();
+         _userService.Get();
 
         [HttpGet("{id:length(24)}", Name = "GetUser")]
         public ActionResult<UserModel> Get(string id)
@@ -66,16 +67,28 @@ namespace NoteApp_UserManagement_Api.Controllers.V1
                 return NotFound();
             }
 
-            return user;
+            return Ok(user);
         }
 
         [HttpPost]
         [Route("create")]
         public ActionResult<UserModel> Create(RegisterUserModel user)
         {
-            var userModel = _userService.Create(user);
+            try
+            {
+                Log.Debug("User Addition Started");
+                Log.Debug("User Addition Input", user);
+                var userModel = _userService.Create(user);
 
-            return CreatedAtRoute("GetUser", new { id = userModel.Id.ToString() }, userModel);
+                return CreatedAtRoute("GetUser", new { id = userModel.Id.ToString() }, userModel);
+            }
+            catch (System.Exception ex)
+            {
+                Log.Error("User Addition Failed", ex);
+                throw new Exception("User Addition Failed", innerException: ex);
+
+            }
+            
         }
 
         [HttpPut("{id:length(24)}")]

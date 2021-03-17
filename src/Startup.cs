@@ -17,6 +17,7 @@ using NoteApp_UserManagement_Api.Services;
 using NoteApp_UserManagement_Api.Models;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 
 namespace NoteApp_UserManagement_Api
 {
@@ -29,6 +30,9 @@ namespace NoteApp_UserManagement_Api
         {
             _env = env;
             _configuration = configuration;
+            Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(configuration)
+            .CreateLogger();
 
         }
 
