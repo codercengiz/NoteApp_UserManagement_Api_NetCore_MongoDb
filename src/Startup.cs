@@ -55,6 +55,11 @@ namespace NoteApp_UserManagement_Api
                 .AddFacebook(facebookOptions => {  });*/
             var secret = _configuration["JWTToken:Secret"];
             var key = Encoding.ASCII.GetBytes(secret);
+            services.AddApiVersioning(apiVerConfig =>
+                {
+                    apiVerConfig.AssumeDefaultVersionWhenUnspecified = true;
+                    apiVerConfig.DefaultApiVersion = new ApiVersion(new DateTime(2021, 1, 1));
+                });
             services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
