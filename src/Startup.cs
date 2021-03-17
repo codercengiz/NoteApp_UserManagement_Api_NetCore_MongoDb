@@ -20,6 +20,7 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
+
 namespace NoteApp_UserManagement_Api
 {
     public class Startup
@@ -51,7 +52,15 @@ namespace NoteApp_UserManagement_Api
                 sp.GetRequiredService<IOptions<UserDatabaseSettings>>().Value);
 
             services.AddSingleton<UserService>();
-
+            services.AddSwaggerGen(options =>
+                    {
+                        options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+                        {
+                            Title = "Microservice - Order Web API",
+                            Version = "v1",
+                            Description = "Sample microservice for order",
+                        });
+                    });
             services.AddControllers()
                 .AddNewtonsoftJson(options => options.UseMemberCasing());
             /*services.AddAuthentication()
@@ -69,6 +78,7 @@ namespace NoteApp_UserManagement_Api
                     apiVerConfig.AssumeDefaultVersionWhenUnspecified = true;
                     apiVerConfig.DefaultApiVersion = new ApiVersion(new DateTime(2021, 1, 1));
                 });
+            
             services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -115,6 +125,8 @@ namespace NoteApp_UserManagement_Api
             {
                 app.UseHsts();
             }
+            
+
             app.UseHealthChecks("/healthcheck");
             app.UseCors(policy => policy.AllowAnyMethod());
             app.UseHttpsRedirection();
@@ -123,6 +135,9 @@ namespace NoteApp_UserManagement_Api
             {
                 endpoints.MapControllers();
             });
+            app.UseSwagger();
+            app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "PlaceInfo Services"));
+            
         }
     }
 }
